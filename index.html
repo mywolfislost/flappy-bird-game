@@ -2,241 +2,201 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Flappy Ball</title>
   <style>
-    html, body {
+    * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
+    }
+    body, html {
+      height: 100%;
       overflow: hidden;
-      background: skyblue;
+      background-color: skyblue;
+      font-family: sans-serif;
     }
     canvas {
       display: block;
-      width: 100vw;
-      height: 100vh;
     }
-    #scoreboard {
+    #overlay {
       position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: Arial, sans-serif;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
       color: white;
-      font-size: 20px;
-      text-shadow: 1px 1px 2px black;
-      z-index: 2;
-      display: none;
-    }
-    #homeScreen {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-family: Arial, sans-serif;
-      color: white;
-      font-size: 30px;
-      text-shadow: 2px 2px 4px black;
-      text-align: center;
-      z-index: 2;
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <div id="homeScreen">Tap to Play the Game</div>
-  <div id="scoreboard">
-    Score: <span id="score">0</span> | Best: <span id="best">0</span>
-  </div>
+  <div id="overlay">Tap to Play the Game</div>
   <canvas id="gameCanvas"></canvas>
-
-  <!-- Stranger Things Theme Audio -->
   <audio id="bgMusic" preload="auto" loop>
-    <source src="https://raw.githubusercontent.com/mywolfislost/flappy-bird-game/blob/main/stranger-things.mp3" type="audio/mp3">
+    <source src="https://raw.githubusercontent.com/mywolfislost/flappy-bird-game/main/stranger-things.mp3" type="audio/mpeg" />
   </audio>
 
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const scoreboard = document.getElementById('scoreboard');
-    const scoreDisplay = document.getElementById('score');
-    const bestDisplay = document.getElementById('best');
-    const homeScreen = document.getElementById('homeScreen');
-    const bgMusic = document.getElementById('bgMusic');
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const bgMusic = document.getElementById("bgMusic");
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    let width = canvas.width;
-    let height = canvas.height;
-
-    const bird = {
-      x: width * 0.25,
-      y: height / 2,
-      radius: 15,
-      velocity: 0,
-      gravity: 0.5,
-      lift: -8,
-      update() {
-        this.velocity += this.gravity;
-        this.y += this.velocity;
-      },
-      draw() {
-        ctx.beginPath();
-        ctx.fillStyle = 'yellow';
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-      },
-      flap() {
-        this.velocity = this.lift;
-      },
-      reset() {
-        this.y = height / 2;
-        this.velocity = 0;
-      }
-    };
-
-    const pipeWidth = 60;
-    const pipeGap = 140;
-    const pipeSpeed = 2.5;
-    let pipes = [];
-    let frame = 0;
-    let score = 0;
-    let best = sessionStorage.getItem('bestScore') || 0;
-    bestDisplay.textContent = best;
+    let width, height;
     let gameStarted = false;
     let gameOver = false;
+    let score = 0;
+    let highScore = sessionStorage.getItem("highScore") || 0;
+
+    let bird = {
+      x: 80,
+      y: 200,
+      radius: 20,
+      velocity: 0,
+      gravity: 0.6,
+      lift: -10
+    };
+
+    let pipes = [];
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+
+    function drawBird() {
+      ctx.beginPath();
+      ctx.fillStyle = "yellow";
+      ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     function createPipe() {
-      const top = Math.random() * (height - pipeGap - 100) + 50;
+      const gap = 180;
+      const pipeWidth = 60;
+      const topHeight = Math.random() * (height - gap - 100) + 50;
       pipes.push({
         x: width,
-        top,
-        bottom: top + pipeGap,
+        width: pipeWidth,
+        top: topHeight,
+        bottom: topHeight + gap,
         passed: false
       });
     }
 
-    function updatePipes() {
-      for (let i = pipes.length - 1; i >= 0; i--) {
-        pipes[i].x -= pipeSpeed;
-
-        if (!pipes[i].passed && pipes[i].x + pipeWidth < bird.x) {
-          pipes[i].passed = true;
-          score++;
-          updateScore();
-        }
-
-        if (pipes[i].x + pipeWidth < 0) {
-          pipes.splice(i, 1);
-        }
-      }
-
-      if (frame % 100 === 0) {
-        createPipe();
-      }
-    }
-
     function drawPipes() {
-      ctx.fillStyle = 'green';
-      pipes.forEach(pipe => {
-        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
-        ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, height - pipe.bottom);
-      });
-    }
-
-    function updateScore() {
-      scoreDisplay.textContent = score;
-      if (score > best) {
-        best = score;
-        sessionStorage.setItem('bestScore', best);
-        bestDisplay.textContent = best;
-      }
-    }
-
-    function checkCollision() {
+      ctx.fillStyle = "green";
       for (let pipe of pipes) {
-        const withinX = bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + pipeWidth;
-        const hitsPipe = bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.bottom;
-        if (withinX && hitsPipe) return true;
+        ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+        ctx.fillRect(pipe.x, pipe.bottom, pipe.width, height - pipe.bottom);
       }
-      return bird.y + bird.radius > height || bird.y - bird.radius < 0;
+    }
+
+    function updateGame() {
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+
+      for (let pipe of pipes) {
+        pipe.x -= 4;
+
+        if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+          pipe.passed = true;
+          score++;
+          if (score > highScore) {
+            highScore = score;
+            sessionStorage.setItem("highScore", highScore);
+          }
+        }
+
+        if (
+          bird.x + bird.radius > pipe.x &&
+          bird.x - bird.radius < pipe.x + pipe.width &&
+          (bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.bottom)
+        ) {
+          gameOver = true;
+        }
+      }
+
+      pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+
+      if (bird.y + bird.radius > height || bird.y - bird.radius < 0) {
+        gameOver = true;
+      }
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "bold 24px sans-serif";
+      ctx.fillText("Score: " + score, 20, 40);
+      ctx.fillText("Best: " + highScore, 20, 70);
     }
 
     function drawGameOver() {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = 'white';
-      ctx.font = '30px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Game Over!', width / 2, height / 2 - 20);
-      ctx.fillText('Tap / Press Space to Restart', width / 2, height / 2 + 20);
-    }
-
-    function resetGame() {
-      bird.reset();
-      pipes = [];
-      frame = 0;
-      score = 0;
-      updateScore();
-      gameOver = false;
+      ctx.fillStyle = "white";
+      ctx.font = "bold 36px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Game Over", width / 2, height / 2 - 20);
+      ctx.font = "24px sans-serif";
+      ctx.fillText("Tap to Restart", width / 2, height / 2 + 20);
     }
 
     function gameLoop() {
-      width = canvas.width;
-      height = canvas.height;
       ctx.clearRect(0, 0, width, height);
 
-      bird.update();
-      updatePipes();
-      bird.draw();
-      drawPipes();
-
-      if (checkCollision()) {
-        gameOver = true;
-        drawGameOver();
-        return;
+      if (gameStarted && !gameOver) {
+        updateGame();
+        if (frameCount % 90 === 0) createPipe();
       }
 
-      frame++;
+      drawPipes();
+      drawBird();
+      drawScore();
+
+      if (gameOver) drawGameOver();
+
+      frameCount++;
       requestAnimationFrame(gameLoop);
     }
 
-    function startGame() {
-      resetGame();
-      homeScreen.style.display = 'none';
-      scoreboard.style.display = 'block';
-      gameStarted = true;
-      gameLoop();
+    function resetGame() {
+      bird.y = height / 2;
+      bird.velocity = 0;
+      pipes = [];
+      score = 0;
+      gameOver = false;
     }
 
     function handleInput() {
-      if (bgMusic.paused) {
-        bgMusic.volume = 0.4;
-        bgMusic.play().then(() => {
-          console.log("Music started");
-        }).catch(err => {
-          console.warn("Autoplay blocked:", err);
-        });
+      if (!gameStarted) {
+        gameStarted = true;
+        overlay.style.display = "none";
+        bgMusic.volume = 0.5;
+        bgMusic.play().catch(e => console.warn("Autoplay blocked:", e));
+        resetGame();
       }
 
-      if (!gameStarted) {
-        startGame();
-      } else if (gameOver) {
-        startGame();
-      } else {
-        bird.flap();
+      if (gameOver) {
+        resetGame();
       }
+
+      bird.velocity = bird.lift;
     }
 
-    window.addEventListener('keydown', e => {
-      if (e.code === 'Space') handleInput();
-    });
-    window.addEventListener('mousedown', handleInput);
-    window.addEventListener('touchstart', handleInput, { passive: true });
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("click", handleInput);
+    window.addEventListener("touchstart", handleInput);
+
+    resizeCanvas();
+    let frameCount = 0;
+    gameLoop();
   </script>
 </body>
 </html>
