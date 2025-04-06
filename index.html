@@ -50,7 +50,7 @@
   <canvas id="gameCanvas"></canvas>
 
   <!-- Background Music (Stranger Things Theme) -->
-  <audio id="bgMusic" loop>
+  <audio id="bgMusic" preload="auto" loop>
     <source src="https://ia801208.us.archive.org/31/items/strangerthings-theme/StrangerThingsTheme.mp3" type="audio/mpeg">
   </audio>
 
@@ -112,17 +112,27 @@
 
     function createPipe() {
       const top = Math.random() * (height - pipeGap - 100) + 50;
-      pipes.push({ x: width, top, bottom: top + pipeGap });
+      pipes.push({
+        x: width,
+        top,
+        bottom: top + pipeGap,
+        passed: false // flag for scoring
+      });
     }
 
     function updatePipes() {
       for (let i = pipes.length - 1; i >= 0; i--) {
         pipes[i].x -= pipeSpeed;
 
-        if (pipes[i].x + pipeWidth < 0) {
-          pipes.splice(i, 1);
+        // Increment score when pipe passes the bird
+        if (!pipes[i].passed && pipes[i].x + pipeWidth < bird.x) {
+          pipes[i].passed = true;
           score++;
           updateScore();
+        }
+
+        if (pipes[i].x + pipeWidth < 0) {
+          pipes.splice(i, 1);
         }
       }
 
@@ -205,10 +215,12 @@
     }
 
     function handleInput() {
-      // Start music after first user interaction
+      // Start music only after user input
       if (bgMusic.paused) {
         bgMusic.volume = 0.4;
-        bgMusic.play().catch(() => {});
+        bgMusic.play().catch(err => {
+          console.warn('Autoplay failed:', err);
+        });
       }
 
       if (!gameStarted) {
