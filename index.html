@@ -61,6 +61,7 @@
         let pipeSpeed = 2;
         let lastPipeTime = 0;
         let pipeInterval = 1500; // milliseconds
+        let lastScoredPipe = null;
 
         // Game loop
         function gameLoop() {
@@ -76,6 +77,7 @@
             // Check for collisions with ground and ceiling
             if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) {
                 gameOver();
+                return;
             }
 
             // Draw bird (yellow ball)
@@ -93,23 +95,30 @@
             }
 
             for (let i = pipes.length - 1; i >= 0; i--) {
-                pipes[i].x -= pipeSpeed;
+                const pipe = pipes[i];
+                pipe.x -= pipeSpeed;
 
                 // Draw pipes (green)
                 ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(pipes[i].x, 0, pipeWidth, pipes[i].topHeight);
-                ctx.fillRect(pipes[i].x, pipes[i].bottomY, pipeWidth, canvas.height - pipes[i].bottomY);
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
 
                 // Check for collisions
-                if (checkCollision(bird, pipes[i])) {
+                if (checkCollision(bird, pipe)) {
                     gameOver();
+                    return;
+                }
+
+                // Update score when passing a pipe
+                if (!pipe.scored && bird.x > pipe.x + pipeWidth) {
+                    pipe.scored = true;
+                    score++;
+                    scoreDiv.textContent = `Score: ${score}`;
                 }
 
                 // Remove pipes that are off screen
-                if (pipes[i].x + pipeWidth < 0) {
+                if (pipe.x + pipeWidth < 0) {
                     pipes.splice(i, 1);
-                    score++;
-                    scoreDiv.textContent = `Score: ${score}`;
                 }
             }
 
@@ -124,14 +133,20 @@
             pipes.push({
                 x: canvas.width,
                 topHeight: topHeight,
-                bottomY: topHeight + pipeGap
+                bottomY: topHeight + pipeGap,
+                scored: false
             });
         }
 
         function checkCollision(bird, pipe) {
             // Check collision with top pipe
             if (bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + pipeWidth) {
-                if (bird.y - bird.radius < pipe.topHeight || bird.y + bird.radius > pipe.bottomY) {
+                // Check collision with top pipe
+                if (bird.y - bird.radius < pipe.topHeight) {
+                    return true;
+                }
+                // Check collision with bottom pipe
+                if (bird.y + bird.radius > pipe.bottomY) {
                     return true;
                 }
             }
