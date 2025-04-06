@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Flappy Ball Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Flappy Ball</title>
   <style>
     html, body {
       margin: 0;
@@ -26,21 +26,41 @@
       font-size: 20px;
       text-shadow: 1px 1px 2px black;
       z-index: 2;
+      display: none;
+    }
+    #homeScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: Arial, sans-serif;
+      color: white;
+      font-size: 30px;
+      text-shadow: 2px 2px 4px black;
+      text-align: center;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
+  <div id="homeScreen">Tap to Play the Game</div>
   <div id="scoreboard">
     Score: <span id="score">0</span> | Best: <span id="best">0</span>
   </div>
   <canvas id="gameCanvas"></canvas>
+  <audio id="bgMusic" loop autoplay>
+    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/4/41/Music_sample.ogg/Music_sample.ogg.mp3" type="audio/mpeg">
+  </audio>
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const scoreboard = document.getElementById('score');
-    const bestboard = document.getElementById('best');
+    const scoreboard = document.getElementById('scoreboard');
+    const scoreDisplay = document.getElementById('score');
+    const bestDisplay = document.getElementById('best');
+    const homeScreen = document.getElementById('homeScreen');
+    const bgMusic = document.getElementById('bgMusic');
 
-    // Fit canvas to screen
+    // Resize canvas
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -51,7 +71,6 @@
     let width = canvas.width;
     let height = canvas.height;
 
-    // Bird object
     const bird = {
       x: width * 0.25,
       y: height / 2,
@@ -85,22 +104,19 @@
     let frame = 0;
     let score = 0;
     let best = sessionStorage.getItem('bestScore') || 0;
-    bestboard.textContent = best;
+    bestDisplay.textContent = best;
+    let gameStarted = false;
+    let gameOver = false;
 
     function createPipe() {
       const top = Math.random() * (height - pipeGap - 100) + 50;
-      pipes.push({
-        x: width,
-        top,
-        bottom: top + pipeGap
-      });
+      pipes.push({ x: width, top, bottom: top + pipeGap });
     }
 
     function updatePipes() {
       for (let i = pipes.length - 1; i >= 0; i--) {
         pipes[i].x -= pipeSpeed;
 
-        // Remove off-screen pipes
         if (pipes[i].x + pipeWidth < 0) {
           pipes.splice(i, 1);
           score++;
@@ -122,11 +138,11 @@
     }
 
     function updateScore() {
-      scoreboard.textContent = score;
+      scoreDisplay.textContent = score;
       if (score > best) {
         best = score;
         sessionStorage.setItem('bestScore', best);
-        bestboard.textContent = best;
+        bestDisplay.textContent = best;
       }
     }
 
@@ -138,8 +154,6 @@
       }
       return bird.y + bird.radius > height || bird.y - bird.radius < 0;
     }
-
-    let gameOver = false;
 
     function drawGameOver() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -167,7 +181,6 @@
 
       bird.update();
       updatePipes();
-
       bird.draw();
       drawPipes();
 
@@ -183,11 +196,17 @@
 
     function startGame() {
       resetGame();
+      homeScreen.style.display = 'none';
+      scoreboard.style.display = 'block';
+      gameStarted = true;
       gameLoop();
     }
 
     function handleInput() {
-      if (gameOver) {
+      bgMusic.play().catch(() => {});
+      if (!gameStarted) {
+        startGame();
+      } else if (gameOver) {
         startGame();
       } else {
         bird.flap();
@@ -199,8 +218,6 @@
     });
     window.addEventListener('mousedown', handleInput);
     window.addEventListener('touchstart', handleInput, { passive: true });
-
-    startGame();
   </script>
 </body>
 </html>
