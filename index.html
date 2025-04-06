@@ -139,7 +139,7 @@
         }
 
         function checkCollision(bird, pipe) {
-            // Check collision with top pipe
+            // Check if bird is within the pipe's x-range
             if (bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + pipeWidth) {
                 // Check collision with top pipe
                 if (bird.y - bird.radius < pipe.topHeight) {
