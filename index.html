@@ -49,9 +49,9 @@
   </div>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Background Music (Stranger Things Theme) -->
+  <!-- Stranger Things Theme Audio -->
   <audio id="bgMusic" preload="auto" loop>
-    <source src="https://ia801208.us.archive.org/31/items/strangerthings-theme/StrangerThingsTheme.mp3" type="audio/mpeg">
+    <source src="https://raw.githubusercontent.com/xzzxzzz/flappy-assets/main/stranger-things.mp3" type="audio/mpeg">
   </audio>
 
   <script>
@@ -116,7 +116,7 @@
         x: width,
         top,
         bottom: top + pipeGap,
-        passed: false // flag for scoring
+        passed: false
       });
     }
 
@@ -124,7 +124,6 @@
       for (let i = pipes.length - 1; i >= 0; i--) {
         pipes[i].x -= pipeSpeed;
 
-        // Increment score when pipe passes the bird
         if (!pipes[i].passed && pipes[i].x + pipeWidth < bird.x) {
           pipes[i].passed = true;
           score++;
@@ -215,11 +214,12 @@
     }
 
     function handleInput() {
-      // Start music only after user input
       if (bgMusic.paused) {
         bgMusic.volume = 0.4;
-        bgMusic.play().catch(err => {
-          console.warn('Autoplay failed:', err);
+        bgMusic.play().then(() => {
+          console.log("Music started");
+        }).catch(err => {
+          console.warn("Autoplay blocked:", err);
         });
       }
 
