@@ -48,9 +48,9 @@
     Score: <span id="score">0</span> | Best: <span id="best">0</span>
   </div>
   <canvas id="gameCanvas"></canvas>
-  
-  <!-- Stranger Things Theme -->
-  <audio id="bgMusic" loop autoplay>
+
+  <!-- Background Music (Stranger Things Theme) -->
+  <audio id="bgMusic" loop>
     <source src="https://ia801208.us.archive.org/31/items/strangerthings-theme/StrangerThingsTheme.mp3" type="audio/mpeg">
   </audio>
 
@@ -62,13 +62,6 @@
     const bestDisplay = document.getElementById('best');
     const homeScreen = document.getElementById('homeScreen');
     const bgMusic = document.getElementById('bgMusic');
-
-    // Try to force autoplay (needed on some mobile browsers)
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        bgMusic.play().catch(() => {});
-      }, 500);
-    });
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -212,7 +205,12 @@
     }
 
     function handleInput() {
-      bgMusic.play().catch(() => {});
+      // Start music after first user interaction
+      if (bgMusic.paused) {
+        bgMusic.volume = 0.4;
+        bgMusic.play().catch(() => {});
+      }
+
       if (!gameStarted) {
         startGame();
       } else if (gameOver) {
